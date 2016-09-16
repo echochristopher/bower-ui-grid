@@ -1,5 +1,5 @@
 /*!
- * ui-grid - v3.2.7 - 2016-09-09
+ * ui-grid - v3.2.0-63-gcf7aa2a-036838f - 2016-09-16
  * Copyright (c) 2016 ; License: MIT 
  */
 
@@ -7368,6 +7368,8 @@ angular.module('ui.grid')
      * - ariaLabel: String that will be set to the `<input>.ariaLabel` attribute. This is what is read as a label to screen reader users.
      * - noTerm: set this to true if you have defined a custom function in condition, and
      * your custom function doesn't require a term (so it can run even when the term is null)
+     * - rawTerm: set this to true if you have defined a custom function in condition, and
+     * your custom function requires access to the raw unmodified search term that was entered
      * - flags: only flag currently available is `caseSensitive`, set to false if you don't want
      * case sensitive matching
      * - type: defaults to {@link ui.grid.service:uiGridConstants#properties_filter uiGridConstants.filter.INPUT},
@@ -9680,7 +9682,11 @@ module.service('rowSearcher', ['gridUtil', 'uiGridConstants', function (gridUtil
     
         if ( !gridUtil.isNullOrUndefined(filter.term) ){
           // it is possible to have noTerm.
-          newFilter.term = rowSearcher.stripTerm(filter);
+          if ( filter.rawTerm ){
+            newFilter.term = filter.term;
+          } else {
+            newFilter.term = rowSearcher.stripTerm(filter);
+          }
         }
         newFilter.noTerm = filter.noTerm;
         
@@ -17777,8 +17783,8 @@ module.filter('px', function() {
                  * @param {string} colTypes which columns to export, valid values are
                  * uiGridExporterConstants.ALL, uiGridExporterConstants.VISIBLE
                  */
-                csvExport: function (rowTypes, colTypes) {
-                  service.csvExport(grid, rowTypes, colTypes);
+                csvExport: function (rowTypes, colTypes, applyCellFilters) {
+                  service.csvExport(grid, rowTypes, colTypes, applyCellFilters);
                 },
                 /**
                  * @ngdoc function
@@ -17795,8 +17801,8 @@ module.filter('px', function() {
                  * @param {string} colTypes which columns to export, valid values are
                  * uiGridExporterConstants.ALL, uiGridExporterConstants.VISIBLE
                  */
-                pdfExport: function (rowTypes, colTypes) {
-                  service.pdfExport(grid, rowTypes, colTypes);
+                pdfExport: function (rowTypes, colTypes, applyCellFilters) {
+                  service.pdfExport(grid, rowTypes, colTypes, applyCellFilters);
                 }
               }
             }
@@ -18284,11 +18290,11 @@ module.filter('px', function() {
          * uiGridExporterConstants.ALL, uiGridExporterConstants.VISIBLE,
          * uiGridExporterConstants.SELECTED
          */
-        csvExport: function (grid, rowTypes, colTypes) {
+        csvExport: function (grid, rowTypes, colTypes, applyCellFilters) {
           var self = this;
           this.loadAllDataIfNeeded(grid, rowTypes, colTypes).then(function() {
             var exportColumnHeaders = grid.options.showHeader ? self.getColumnHeaders(grid, colTypes) : [];
-            var exportData = self.getData(grid, rowTypes, colTypes);
+            var exportData = self.getData(grid, rowTypes, colTypes, applyCellFilters);
             var csvContent = self.formatAsCsv(exportColumnHeaders, exportData, grid.options.exporterCsvColumnSeparator);
 
             self.downloadFile (grid.options.exporterCsvFilename, csvContent, grid.options.exporterCsvColumnSeparator, grid.options.exporterOlderExcelCompatibility);
@@ -18653,11 +18659,11 @@ module.filter('px', function() {
          * uiGridExporterConstants.ALL, uiGridExporterConstants.VISIBLE,
          * uiGridExporterConstants.SELECTED
          */
-        pdfExport: function (grid, rowTypes, colTypes) {
+        pdfExport: function (grid, rowTypes, colTypes, applyCellFilters) {
           var self = this;
           this.loadAllDataIfNeeded(grid, rowTypes, colTypes).then(function () {
             var exportColumnHeaders = self.getColumnHeaders(grid, colTypes);
-            var exportData = self.getData(grid, rowTypes, colTypes);
+            var exportData = self.getData(grid, rowTypes, colTypes, applyCellFilters);
             var docDefinition = self.prepareAsPdf(grid, exportColumnHeaders, exportData);
 
             if (self.isIE() || navigator.appVersion.indexOf("Edge") !== -1) {
